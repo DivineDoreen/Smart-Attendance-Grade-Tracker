@@ -2,8 +2,8 @@
 // Start the session
 session_start();
 
-// Include the QR code library
-include __DIR__ . '/php/phpqrcode.php';
+// Include the database connection file
+include __DIR__ . '/php/db.php';
 
 // Redirect to login if not logged in
 if (!isset($_SESSION['user_id']) || $_SESSION['role'] != 'lecturer') {
@@ -11,8 +11,32 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] != 'lecturer') {
     exit();
 }
 
-// Include the database connection file
-include __DIR__ . '/php/db.php';
+// Handle QR code generation
+if (isset($_POST['generate_qr'])) {
+    $class_id = $_POST['class_id']; // Assuming you have a dropdown to select a class
+    $session_code = bin2hex(random_bytes(16)); // Unique session code
+    $expiry_time = date('Y-m-d H:i:s', strtotime('+1 hour')); // QR expires in 1 hour
+
+    // Store the session in the database
+    try {
+        $sql = "INSERT INTO Sessions (class_id, session_code, expiry_time) VALUES (:class_id, :session_code, :expiry_time)";
+        $stmt = $conn->prepare($sql);
+        $stmt->bindParam(':class_id', $class_id);
+        $stmt->bindParam(':session_code', $session_code);
+        $stmt->bindParam(':expiry_time', $expiry_time);
+        $stmt->execute();
+
+        // Generate QR code
+        include __DIR__ . '/php/phpqrcode/qrlib.php';
+        $qrData = "ATTENDANCE_SYSTEM:" . $session_code;
+        $qrFile = "qrcodes/" . $session_code . ".png";
+        QRcode::png($qrData, $qrFile, 'L', 10, 2);
+
+        $qrSuccess = "QR code generated successfully!";
+    } catch (PDOException $e) {
+        $qrError = "Error: " . $e->getMessage();
+    }
+}
 
 // Fetch lecturer data
 $lecturer_id = $_SESSION['user_id'];
@@ -177,49 +201,25 @@ try {
         </div>
 
         <!-- QR Code Generator -->
-        <div class="dashboard-section qr-generator">
-            <h2>Generate QR Code for Attendance</h2>
-            <form action="lecturer_dashboard.php" method="POST">
-                <label for="class_id">Select Class:</label>
-                <select name="class_id" id="class_id" required>
-                    <?php foreach ($classes as $class): ?>
-                        <option value="<?php echo $class['id']; ?>"><?php echo $class['class_name']; ?></option>
-                    <?php endforeach; ?>
-                </select>
-                <button type="submit" name="generate_qr">Generate QR Code</button>
-            </form>
-
-            <?php
-            if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['generate_qr'])) {
-                $class_id = $_POST['class_id'];
-                $session_code = uniqid(); // Generate a unique session code
-                $expiry_time = date('Y-m-d H:i:s', strtotime('+10 minutes')); // QR code expires in 10 minutes
-
-                // Save the session code to the database
-                try {
-                    $sql = "INSERT INTO Sessions (class_id, session_code, expiry_time) VALUES (:class_id, :session_code, :expiry_time)";
-                    $stmt = $conn->prepare($sql);
-                    $stmt->bindParam(':class_id', $class_id);
-                    $stmt->bindParam(':session_code', $session_code);
-                    $stmt->bindParam(':expiry_time', $expiry_time);
-                    $stmt->execute();
-
-                    // Generate the QR code
-                    $qrData = "Class ID: $class_id | Session Code: $session_code";
-                    $qrFile = __DIR__ . "/assets/qr_codes/$session_code.png";
-                    QRcode::png($qrData, $qrFile, QR_ECLEVEL_L, 10);
-
-                    // Display the QR code
-                    echo "<div style='text-align: center; margin-top: 20px;'>";
-                    echo "<img src='assets/qr_codes/$session_code.png' alt='QR Code'>";
-                    echo "<p>Scan this QR code to mark attendance. Expires at: $expiry_time</p>";
-                    echo "</div>";
-                } catch (PDOException $e) {
-                    echo "<p class='error'>Error generating QR code: " . $e->getMessage() . "</p>";
-                }
-            }
-            ?>
-        </div>
+<div class="dashboard-section qr-generator">
+    <h2>Generate QR Code for Attendance</h2>
+    <?php if (isset($qrSuccess)): ?>
+        <p class="success"><?php echo $qrSuccess; ?></p>
+        <img src="<?php echo $qrFile; ?>" alt="QR Code" style="width: 200px; height: 200px; margin: 20px auto; display: block;">
+        <p>Session Code: <?php echo $session_code; ?></p>
+        <p>Expires at: <?php echo $expiry_time; ?></p>
+    <?php elseif (isset($qrError)): ?>
+        <p class="error"><?php echo $qrError; ?></p>
+    <?php endif; ?>
+    <form action="lecturer_dashboard.php" method="POST">
+        <select name="class_id" required style="width: 100%; padding: 10px; margin-bottom: 15px;">
+            <?php foreach ($classes as $class): ?>
+                <option value="<?php echo $class['id']; ?>"><?php echo $class['class_name']; ?></option>
+            <?php endforeach; ?>
+        </select>
+        <button type="submit" name="generate_qr" class="action-button">Generate QR Code</button>
+    </form>
+</div>
 
         <!-- Attendance Records -->
         <div class="dashboard-section">
