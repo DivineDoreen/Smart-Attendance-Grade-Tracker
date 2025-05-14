@@ -1,17 +1,17 @@
 <?php
-// Database configuration
-$host = 'localhost'; // Host name
-$dbname = 'smart_attendance'; // Database name
-$username = 'root'; // Default username for XAMPP
-$password = ''; // Default password for XAMPP (empty)
+$host = 'localhost';
+$dbname = 'smart_attendance';
+$username = 'root';
+$password = '';
 
-// Create a connection to the database
 try {
-    $conn = new PDO("mysql:host=$host;dbname=$dbname", $username, $password);
-    // Set the PDO error mode to exception
-    $conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    $conn = new PDO("mysql:host=$host;dbname=$dbname", $username, $password, [
+        PDO::MYSQL_ATTR_USE_BUFFERED_QUERY => true, // Prevents unbuffered errors
+        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION, // Will throw exceptions on errors
+        PDO::ATTR_PERSISTENT => false, // Avoids connection exhaustion
+        PDO::ATTR_EMULATE_PREPARES => false // True security
+    ]);
 } catch (PDOException $e) {
-    // If connection fails, display an error message
-    echo "Connection failed: " . $e->getMessage();
+    die("Connection failed: " . $e->getMessage());
 }
 ?>

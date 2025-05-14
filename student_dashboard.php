@@ -210,6 +210,16 @@ try {
             </div>
         </div>
 
+        <div class="scan-button" style="text-align: center; margin: 20px 0;">
+            <a href="student_scan.php" class="btn" style="
+            background: #6a11cb; 
+            color: white; 
+            padding: 12px 24px; 
+            border-radius: 8px; 
+            text-decoration: none;
+        ">Mark Attendance via QR</a>
+        </div>
+
         <!-- Logout Button -->
         <div class="logout-button">
             <a href="logout.php">Logout</a>

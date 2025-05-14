@@ -13,36 +13,48 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $password = $_POST['password'];
     $role = $_POST['role'];
 
-    // Check if the email already exists
-    try {
-        $checkEmailSql = "SELECT email FROM Users WHERE email = :email";
-        $checkEmailStmt = $conn->prepare($checkEmailSql);
-        $checkEmailStmt->bindParam(':email', $email);
-        $checkEmailStmt->execute();
+    // Input validation (basic checks)
+    if (empty($name) || empty($email) || empty($password) || empty($role)) {
+        $error = "All fields are required.";
+    } else if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        $error = "Invalid email format.";
+    } else {
+        // Check if the email already exists
+        try {
+            $checkEmailSql = "SELECT email FROM Users WHERE email = :email";
+            $checkEmailStmt = $conn->prepare($checkEmailSql);
+            $checkEmailStmt->bindParam(':email', $email);
+            $checkEmailStmt->execute();
 
-        if ($checkEmailStmt->rowCount() > 0) {
-            // Email already exists
-            $error = "Email already registered. Please use a different email.";
-        } else {
-            // Hash the password for security
-            $password_hash = password_hash($password, PASSWORD_DEFAULT);
+            if ($checkEmailStmt->rowCount() > 0) {
+                // Email already exists
+                $error = "Email already registered. Please use a different email.";
+            } else {
+                // Hash the password for security
+                $password_hash = password_hash($password, PASSWORD_DEFAULT);
 
-            // Insert user data into the database
-            $insertSql = "INSERT INTO Users (name, email, password_hash, role) VALUES (:name, :email, :password_hash, :role)";
-            $insertStmt = $conn->prepare($insertSql);
-            $insertStmt->bindParam(':name', $name);
-            $insertStmt->bindParam(':email', $email);
-            $insertStmt->bindParam(':password_hash', $password_hash);
-            $insertStmt->bindParam(':role', $role);
-            $insertStmt->execute();
+                // Insert user data into the database
+                $insertSql = "INSERT INTO Users (name, email, password_hash, role) VALUES (:name, :email, :password_hash, :role)";
+                $insertStmt = $conn->prepare($insertSql);
+                $insertStmt->bindParam(':name', $name);
+                $insertStmt->bindParam(':email', $email);
+                $insertStmt->bindParam(':password_hash', $password_hash);
+                $insertStmt->bindParam(':role', $role);
+                $insertStmt->execute();
 
-            $success = "Registration successful!";
+                // Add cleanup after successful insert
+                $insertStmt->closeCursor(); // Close the statement after execution
+                $insertStmt = null; // Explicit cleanup
+
+                $success = "Registration successful!";
+            }
+        } catch (PDOException $e) {
+            $error = "Error: " . $e->getMessage();
         }
-    } catch (PDOException $e) {
-        $error = "Error: " . $e->getMessage();
     }
 }
 ?>
+
 
 <!DOCTYPE html>
 <html lang="en">

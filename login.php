@@ -12,14 +12,12 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
     // Fetch user data from the database
     try {
-        $sql = "SELECT * FROM Users WHERE email = :email";
-        $stmt = $conn->prepare($sql);
-        $stmt->bindParam(':email', $email);
-        $stmt->execute();
-        $user = $stmt->fetch(PDO::FETCH_ASSOC);
-
+        $stmt = $conn->prepare("SELECT * FROM `users` WHERE email = :email");
+        $stmt->execute([':email' => $email]);
+        $user = $stmt->fetch(); // Fetch a single row
+        
+        // Verify password and user existence
         if ($user && password_verify($password, $user['password_hash'])) {
-            // Start a session and store user data
             session_start();
             $_SESSION['user_id'] = $user['id'];
             $_SESSION['role'] = $user['role'];
@@ -36,11 +34,17 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         } else {
             $error = "Invalid email or password.";
         }
+
+        // Close the statement and clean up
+        $stmt->closeCursor();  // Close the cursor to release the connection
+        $stmt = null;  // Explicit cleanup
+
     } catch (PDOException $e) {
         $error = "Error: " . $e->getMessage();
     }
 }
 ?>
+
 
 <!DOCTYPE html>
 <html lang="en">

@@ -19,7 +19,7 @@ if (isset($_POST['generate_qr'])) {
 
     // Store the session in the database
     try {
-        $sql = "INSERT INTO Sessions (class_id, session_code, expiry_time) VALUES (:class_id, :session_code, :expiry_time)";
+        $sql = "INSERT INTO `sessions` (class_id, session_code, expiry_time) VALUES (:class_id, :session_code, :expiry_time)";
         $stmt = $conn->prepare($sql);
         $stmt->bindParam(':class_id', $class_id);
         $stmt->bindParam(':session_code', $session_code);
