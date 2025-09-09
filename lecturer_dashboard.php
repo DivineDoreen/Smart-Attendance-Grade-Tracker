@@ -195,31 +195,32 @@ try {
     </style>
 </head>
 <body>
+    <?php include 'nav.php'; ?>
     <div class="dashboard-container">
         <div class="dashboard-header">
             <h1>Welcome to Your Dashboard</h1>
         </div>
 
         <!-- QR Code Generator -->
-<div class="dashboard-section qr-generator">
-    <h2>Generate QR Code for Attendance</h2>
-    <?php if (isset($qrSuccess)): ?>
-        <p class="success"><?php echo $qrSuccess; ?></p>
-        <img src="<?php echo $qrFile; ?>" alt="QR Code" style="width: 200px; height: 200px; margin: 20px auto; display: block;">
-        <p>Session Code: <?php echo $session_code; ?></p>
-        <p>Expires at: <?php echo $expiry_time; ?></p>
-    <?php elseif (isset($qrError)): ?>
-        <p class="error"><?php echo $qrError; ?></p>
-    <?php endif; ?>
-    <form action="lecturer_dashboard.php" method="POST">
-        <select name="class_id" required style="width: 100%; padding: 10px; margin-bottom: 15px;">
-            <?php foreach ($classes as $class): ?>
-                <option value="<?php echo $class['id']; ?>"><?php echo $class['class_name']; ?></option>
-            <?php endforeach; ?>
-        </select>
-        <button type="submit" name="generate_qr" class="action-button">Generate QR Code</button>
-    </form>
-</div>
+        <div class="dashboard-section qr-generator">
+            <h2>Generate QR Code for Attendance</h2>
+            <?php if (isset($qrSuccess)): ?>
+                <p class="success"><?php echo $qrSuccess; ?></p>
+                <img src="<?php echo $qrFile; ?>" alt="QR Code" style="width: 200px; height: 200px; margin: 20px auto; display: block;">
+                <p>Session Code: <?php echo $session_code; ?></p>
+                <p>Expires at: <?php echo $expiry_time; ?></p>
+            <?php elseif (isset($qrError)): ?>
+                <p class="error"><?php echo $qrError; ?></p>
+            <?php endif; ?>
+            <form action="lecturer_dashboard.php" method="POST">
+                <select name="class_id" required style="width: 100%; padding: 10px; margin-bottom: 15px;">
+                    <?php foreach ($classes as $class): ?>
+                        <option value="<?php echo $class['id']; ?>"><?php echo $class['class_name']; ?></option>
+                    <?php endforeach; ?>
+                </select>
+                <button type="submit" name="generate_qr" class="action-button">Generate QR Code</button>
+            </form>
+        </div>
 
         <!-- Attendance Records -->
         <div class="dashboard-section">
@@ -279,11 +280,6 @@ try {
             <?php else: ?>
                 <p>No grade records found.</p>
             <?php endif; ?>
-        </div>
-
-        <!-- Logout Button -->
-        <div class="logout-button">
-            <a href="logout.php">Logout</a>
         </div>
     </div>
 

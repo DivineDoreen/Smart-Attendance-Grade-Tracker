@@ -1,69 +1,79 @@
 <?php
-// Include the database connection file
+// Start the session
+session_start();
+
+// Include database connection
 include __DIR__ . '/php/db.php';
 
 // Initialize variables
 $error = "";
 $success = "";
 
-// Handle form submission
-if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-    $name = $_POST['name'];
-    $email = $_POST['email'];
+// Check if user is admin
+if (!isset($_SESSION['user_id']) || $_SESSION['role'] != 'admin') {
+    header("Location: login.php");
+    exit();
+}
+
+// Handle registration form submission
+if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['register'])) {
+    $name = trim($_POST['name']);
+    $email = trim($_POST['email']);
     $password = $_POST['password'];
     $role = $_POST['role'];
 
-    // Input validation (basic checks)
+    // Validate inputs
     if (empty($name) || empty($email) || empty($password) || empty($role)) {
         $error = "All fields are required.";
-    } else if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+    } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
         $error = "Invalid email format.";
     } else {
-        // Check if the email already exists
         try {
-            $checkEmailSql = "SELECT email FROM Users WHERE email = :email";
-            $checkEmailStmt = $conn->prepare($checkEmailSql);
-            $checkEmailStmt->bindParam(':email', $email);
-            $checkEmailStmt->execute();
-
-            if ($checkEmailStmt->rowCount() > 0) {
-                // Email already exists
-                $error = "Email already registered. Please use a different email.";
+            // Check if email already exists
+            $sql = "SELECT id FROM users WHERE email = :email";
+            $stmt = $conn->prepare($sql);
+            $stmt->execute([':email' => $email]);
+            if ($stmt->fetch()) {
+                $error = "Email already registered.";
             } else {
-                // Hash the password for security
+                // Generate verification token
+                $verification_token = bin2hex(random_bytes(32));
                 $password_hash = password_hash($password, PASSWORD_DEFAULT);
+                $is_verified = 0;
 
-                // Insert user data into the database
-                $insertSql = "INSERT INTO Users (name, email, password_hash, role) VALUES (:name, :email, :password_hash, :role)";
-                $insertStmt = $conn->prepare($insertSql);
-                $insertStmt->bindParam(':name', $name);
-                $insertStmt->bindParam(':email', $email);
-                $insertStmt->bindParam(':password_hash', $password_hash);
-                $insertStmt->bindParam(':role', $role);
-                $insertStmt->execute();
+                // Insert new user
+                $sql = "INSERT INTO users (name, email, password_hash, role, verification_token, is_verified) 
+                        VALUES (:name, :email, :password_hash, :role, :verification_token, :is_verified)";
+                $stmt = $conn->prepare($sql);
+                $stmt->execute([
+                    ':name' => $name,
+                    ':email' => $email,
+                    ':password_hash' => $password_hash,
+                    ':role' => $role,
+                    ':verification_token' => $verification_token,
+                    ':is_verified' => $is_verified
+                ]);
 
-                // Add cleanup after successful insert
-                $insertStmt->closeCursor(); // Close the statement after execution
-                $insertStmt = null; // Explicit cleanup
+                $success = "User registered! Please ask the user to check their email for verification.";
+                // TODO: Implement email sending with verification link (e.g., http://localhost/verify.php?token=$verification_token)
 
-                $success = "Registration successful!";
+                $success = "User registered! Verification link: http://localhost/verify.php?token=" . $verification_token . 
+                    " (Copy this link and open it in a browser to verify the account manually for now.)";
             }
         } catch (PDOException $e) {
-            $error = "Error: " . $e->getMessage();
+            $error = "Database error: " . $e->getMessage();
         }
     }
 }
 ?>
-
 
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Signup</title>
+    <title>Register User</title>
     <style>
-        /* General Styles */
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background: linear-gradient(135deg, #6a11cb, #2575fc);
@@ -72,10 +82,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             align-items: center;
             height: 100vh;
             margin: 0;
-            color: #333;
         }
-
-        /* Form Container */
         .form-container {
             background: rgba(255, 255, 255, 0.9);
             padding: 30px;
@@ -83,22 +90,12 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
             width: 350px;
             text-align: center;
-            animation: fadeIn 0.5s ease-in-out;
         }
-
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(-20px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        /* Form Header */
         .form-container h2 {
             margin-bottom: 20px;
             font-size: 24px;
             color: #444;
         }
-
-        /* Input Fields */
         .form-container input, .form-container select {
             width: 100%;
             padding: 12px;
@@ -106,15 +103,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             border: 1px solid #ddd;
             border-radius: 8px;
             font-size: 14px;
-            transition: border-color 0.3s ease;
         }
-
-        .form-container input:focus, .form-container select:focus {
-            border-color: #6a11cb;
-            outline: none;
-        }
-
-        /* Submit Button */
         .form-container button {
             width: 100%;
             padding: 12px;
@@ -124,66 +113,34 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             border-radius: 8px;
             font-size: 16px;
             cursor: pointer;
-            transition: background 0.3s ease;
         }
-
         .form-container button:hover {
             background: linear-gradient(135deg, #2575fc, #6a11cb);
         }
-
-        /* Error and Success Messages */
-        .error {
-            color: #ff4d4d;
-            margin-bottom: 15px;
-            font-size: 14px;
-        }
-
-        .success {
-            color: #28a745;
-            margin-bottom: 15px;
-            font-size: 14px;
-        }
-
-        /* Link to Login Page */
-        .login-link {
-            margin-top: 15px;
-            font-size: 14px;
-        }
-
-        .login-link a {
-            color: #6a11cb;
-            text-decoration: none;
-            font-weight: bold;
-        }
-
-        .login-link a:hover {
-            text-decoration: underline;
-        }
+        .error { color: #ff4d4d; margin-bottom: 15px; }
+        .success { color: #4CAF50; margin-bottom: 15px; }
     </style>
 </head>
 <body>
     <div class="form-container">
-        <h2>Signup</h2>
-        <?php
-        if (isset($error)) {
-            echo "<p class='error'>$error</p>";
-        }
-        if (isset($success)) {
-            echo "<p class='success'>$success</p>";
-        }
-        ?>
-        <form action="signup.php" method="POST">
-            <input type="text" name="name" placeholder="Full Name" required>
+        <h2>Register New User</h2>
+        <?php if (isset($error)): ?>
+            <p class="error"><?php echo $error; ?></p>
+        <?php endif; ?>
+        <?php if (isset($success)): ?>
+            <p class="success"><?php echo $success; ?></p>
+        <?php endif; ?>
+        <form method="POST" action="">
+            <input type="text" name="name" placeholder="Name" required>
             <input type="email" name="email" placeholder="Email" required>
             <input type="password" name="password" placeholder="Password" required>
             <select name="role" required>
                 <option value="student">Student</option>
                 <option value="lecturer">Lecturer</option>
-                <option value="admin">Admin</option>
             </select>
-            <button type="submit">Signup</button>
+            <button type="submit" name="register">Register</button>
         </form>
-        <p class="login-link">Already have an account? <a href="login.php">Login here</a></p>
+        <a href="admin_dashboard.php">Back to Admin Dashboard</a>
     </div>
 </body>
 </html>
