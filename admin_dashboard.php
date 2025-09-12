@@ -157,62 +157,287 @@ try {
     <title>Admin Dashboard</title>
     <style>
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #6a11cb, #2575fc);
+            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', sans-serif;
+            background-color: #FFFFFF;
             margin: 0;
-            padding: 20px;
-            color: #333;
+            color: #3C2F2F;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
         }
+
         .dashboard-container {
-            background: rgba(255, 255, 255, 0.9);
-            padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0 0 10px rgba(0,0,0,0.1);
-            max-width: 800px;
-            margin: 0 auto;
+            background-color: #FFFFFF;
+            padding: 32px;
+            border-radius: 16px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 960px;
+            margin: 24px auto;
+            box-sizing: border-box;
         }
-        h2 { text-align: center; color: #444; }
-        .error { color: #ff4d4d; margin: 10px 0; }
-        .success { color: #4CAF50; margin: 10px 0; }
+
+        .dashboard-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+        }
+
+        h2 {
+            font-size: 28px;
+            font-weight: 600;
+            color: #3C2F2F;
+            margin: 0;
+            text-align: center;
+        }
+
+        h3 {
+            font-size: 20px;
+            font-weight: 500;
+            color: #3C2F2F;
+            margin-bottom: 16px;
+        }
+
+        .error {
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 16px;
+            font-size: 14px;
+            background-color: #FFEBEE;
+            color: #FF3B30;
+            text-align: center;
+        }
+
+        .success {
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 16px;
+            font-size: 14px;
+            background-color: #E8F5E9;
+            color: #34C759;
+            text-align: center;
+        }
+
         table {
             width: 100%;
             border-collapse: collapse;
-            margin: 20px 0;
+            background-color: #FFFFFF;
+            margin: 16px 0;
         }
+
         th, td {
-            padding: 10px;
-            border: 1px solid #ddd;
+            padding: 12px;
+            border-bottom: 1px solid #E0E0E0;
             text-align: left;
+            font-size: 14px;
+            color: #3C2F2F;
         }
-        th { background-color: #f4f4f4; }
-        .form-group { margin-bottom: 15px; }
-        .form-group label { display: block; margin-bottom: 5px; }
-        .form-group input, .form-group select {
+
+        th {
+            background-color: #F5F5F5;
+            font-weight: 500;
+        }
+
+        tr:hover {
+            background-color: #F9F9F9;
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 14px;
+            font-weight: 500;
+            color: #3C2F2F;
+            margin-bottom: 8px;
+        }
+
+        .form-group input,
+        .form-group select {
             width: 100%;
-            padding: 8px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
+            padding: 12px;
+            border: 1px solid #E0E0E0;
+            border-radius: 8px;
+            font-size: 14px;
+            color: #3C2F2F;
+            background-color: #F5F5F5;
+            box-sizing: border-box;
         }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            border-color: #34C759;
+            outline: none;
+            background-color: #FFFFFF;
+        }
+
         button {
-            padding: 10px 20px;
-            background: linear-gradient(135deg, #6a11cb, #2575fc);
-            color: white;
+            padding: 12px;
+            background-color: #34C759;
+            color: #FFFFFF;
             border: none;
-            border-radius: 4px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 500;
             cursor: pointer;
+            transition: background-color 0.2s ease;
+            width: 100%;
+            max-width: 300px;
+            text-align: center;
         }
-        button:hover { background: linear-gradient(135deg, #2575fc, #6a11cb); }
-        #filter-select {
-            margin-bottom: 10px;
-            padding: 5px;
-            border-radius: 4px;
+
+        button:hover {
+            background-color: #2DB84C;
+        }
+
+        .logout-button {
+            padding: 8px 16px;
+            background-color: #34C759;
+            color: #FFFFFF;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+            text-decoration: none;
+            text-align: center;
+        }
+
+        .logout-button:hover {
+            background-color: #2DB84C;
+        }
+
+        #filter-select,
+        #filter-value {
+            width: 100%;
+            max-width: 300px;
+            padding: 12px;
+            border: 1px solid #E0E0E0;
+            border-radius: 8px;
+            font-size: 14px;
+            color: #3C2F2F;
+            background-color: #F5F5F5;
+            margin-bottom: 16px;
+        }
+
+        #filter-select:focus,
+        #filter-value:focus {
+            border-color: #34C759;
+            outline: none;
+            background-color: #FFFFFF;
+        }
+
+        #filter-value {
+            display: none;
+        }
+
+        @media (max-width: 768px) {
+            .dashboard-container {
+                padding: 24px;
+                margin: 16px auto;
+                max-width: 90%;
+            }
+
+            .dashboard-header h2 {
+                font-size: 24px;
+            }
+
+            .logout-button {
+                padding: 6px 12px;
+                font-size: 13px;
+            }
+
+            h3 {
+                font-size: 18px;
+            }
+
+            th, td {
+                padding: 10px;
+                font-size: 13px;
+            }
+
+            .form-group label {
+                font-size: 13px;
+            }
+
+            .form-group input,
+            .form-group select,
+            #filter-select,
+            #filter-value {
+                padding: 10px;
+                font-size: 13px;
+            }
+
+            button {
+                padding: 10px;
+                font-size: 14px;
+            }
+
+            .error,
+            .success {
+                font-size: 13px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .dashboard-container {
+                padding: 16px;
+                max-width: 95%;
+            }
+
+            .dashboard-header h2 {
+                font-size: 20px;
+            }
+
+            .logout-button {
+                padding: 6px 10px;
+                font-size: 12px;
+            }
+
+            h3 {
+                font-size: 16px;
+            }
+
+            th, td {
+                padding: 8px;
+                font-size: 12px;
+            }
+
+            .form-group label {
+                font-size: 12px;
+            }
+
+            .form-group input,
+            .form-group select,
+            #filter-select,
+            #filter-value {
+                padding: 8px;
+                font-size: 12px;
+            }
+
+            button {
+                padding: 8px;
+                font-size: 13px;
+            }
+
+            .error,
+            .success {
+                font-size: 12px;
+            }
         }
     </style>
 </head>
 <body>
-    <?php include 'nav.php'; ?>
     <div class="dashboard-container">
-        <h2>Admin Dashboard</h2>
+        <div class="dashboard-header">
+            <h2>Admin Dashboard</h2>
+            <a href="login.php?logout=1" class="logout-button">Logout</a>
+        </div>
         <?php if (!empty($error)): ?>
             <p class="error"><?php echo $error; ?></p>
         <?php endif; ?>
@@ -243,7 +468,7 @@ try {
                 </select>
             </div>
             <div class="form-group" id="common-fields" style="display: none;">
-                <label for="faculty">Faculty <span style="color: red;">*</span></label>
+                <label for="faculty">Faculty <span style="color: #FF3B30;">*</span></label>
                 <select name="faculty" id="faculty" required>
                     <option value="">Select Faculty</option>
                     <?php
@@ -260,7 +485,7 @@ try {
                     }
                     ?>
                 </select>
-                <label for="department">Department <span style="color: red;">*</span></label>
+                <label for="department">Department <span style="color: #FF3B30;">*</span></label>
                 <select name="department" id="department" required>
                     <option value="">Select Department</option>
                     <?php
@@ -280,7 +505,7 @@ try {
                 </select>
             </div>
             <div class="form-group" id="lecturer-fields" style="display: none;">
-                <label for="lecturer_id">Lecturer ID <span style="color: red;">*</span></label>
+                <label for="lecturer_id">Lecturer ID <span style="color: #FF3B30;">*</span></label>
                 <input type="text" name="lecturer_id" id="lecturer_id">
                 <label for="class_id">Existing Class</label>
                 <select name="class_id" id="class_id">
@@ -293,7 +518,7 @@ try {
                 <input type="text" name="new_class_name" id="new_class_name" placeholder="e.g., CS101">
             </div>
             <div class="form-group" id="student-field" style="display: none;">
-                <label for="matric_no">Matric Number <span style="color: red;">*</span></label>
+                <label for="matric_no">Matric Number <span style="color: #FF3B30;">*</span></label>
                 <input type="text" name="matric_no" id="matric_no">
             </div>
             <button type="submit" name="register">Register</button>
@@ -308,7 +533,7 @@ try {
             <option value="dept">By Department</option>
             <option value="faculty">By Faculty</option>
         </select>
-        <input type="text" id="filter-value" placeholder="Enter Department/Faculty" style="margin-bottom: 10px; padding: 5px; border-radius: 4px; display: none;">
+        <input type="text" id="filter-value" placeholder="Enter Department/Faculty">
         <?php if (!empty($users)): ?>
             <table id="users-table">
                 <tr>

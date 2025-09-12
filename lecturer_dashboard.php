@@ -17,9 +17,17 @@ if (!isset($_SESSION['last_class_id']) && !empty($_POST['class_id'])) {
 }
 $lastClassId = $_SESSION['last_class_id'] ?? (isset($classes[0]['id']) ? $classes[0]['id'] : null);
 
+// Check if QR code generation is on cooldown
+$qrButtonDisabled = false;
+$remainingTime = 0;
+if (isset($_SESSION['qr_generate_time']) && time() < $_SESSION['qr_generate_time'] + 3600) {
+    $qrButtonDisabled = true;
+    $remainingTime = ($_SESSION['qr_generate_time'] + 3600) - time();
+}
+
 // Handle QR code generation
 $qrSuccess = $qrError = "";
-if (isset($_POST['generate_qr'])) {
+if (isset($_POST['generate_qr']) && !$qrButtonDisabled) {
     $class_id = $_POST['class_id'] ?? $lastClassId;
     $_SESSION['last_class_id'] = $class_id;
     $lastClassId = $class_id;
@@ -40,6 +48,12 @@ if (isset($_POST['generate_qr'])) {
         QRcode::png($qrData, $qrFile, 'L', 10, 2);
 
         $qrSuccess = "QR code generated successfully!";
+        $_SESSION['qr_session_code'] = $session_code;
+        $_SESSION['qr_expiry_time'] = $expiry_time;
+        $_SESSION['qr_file'] = $qrFile;
+        $_SESSION['qr_generate_time'] = time();
+        $qrButtonDisabled = true;
+        $remainingTime = 3600; // 1 hour in seconds
     } catch (PDOException $e) {
         $qrError = "Error: " . $e->getMessage();
     }
@@ -265,7 +279,12 @@ try {
             transition: background-color 0.3s ease;
         }
 
-        .qr-generator button:hover {
+        .qr-generator button:disabled {
+            background-color: #A5D6A7;
+            cursor: not-allowed;
+        }
+
+        .qr-generator button:hover:not(:disabled) {
             background-color: #45A049;
         }
 
@@ -276,6 +295,17 @@ try {
             display: block;
             border: 1px solid #E0E0E0;
             border-radius: 8px;
+        }
+
+        .qr-placeholder {
+            width: 200px;
+            height: 200px;
+            margin: 20px auto;
+            display: block;
+            background-color: #4CAF50;
+            border: 1px solid #E0E0E0;
+            border-radius: 8px;
+            opacity: 0.3;
         }
 
         .grade-form {
@@ -332,7 +362,7 @@ try {
             .dashboard-section h2 { font-size: 18px; }
             table th, table td { padding: 8px; font-size: 14px; }
             .qr-generator button { padding: 8px 16px; font-size: 14px; }
-            .qr-image { width: 150px; height: 150px; }
+            .qr-image, .qr-placeholder { width: 150px; height: 150px; }
             .grade-form input { width: 60px; font-size: 12px; }
             .grade-form button { padding: 6px 12px; font-size: 12px; }
         }
@@ -343,7 +373,7 @@ try {
             .logout-button-top a { padding: 6px 12px; font-size: 12px; }
             .dashboard-section h2 { font-size: 16px; }
             table th, table td { padding: 6px; font-size: 12px; }
-            .qr-image { width: 120px; height: 120px; }
+            .qr-image, .qr-placeholder { width: 120px; height: 120px; }
             .grade-form { flex-direction: column; gap: 5px; }
             .grade-form input { width: 100%; max-width: 80px; }
             .grade-form button { width: 100%; max-width: 120px; }
@@ -351,7 +381,6 @@ try {
     </style>
 </head>
 <body>
-    <?php include 'nav.php'; ?>
     <div class="dashboard-container">
         <div class="dashboard-header">
             <h1>Welcome, <?php echo htmlspecialchars($lecturerName); ?>!</h1>
@@ -375,19 +404,22 @@ try {
             }
             ?>
             <h2><?php echo htmlspecialchars($className); ?></h2>
-            <?php if (isset($qrSuccess)): ?>
+            <?php if (isset($qrSuccess) && isset($_SESSION['qr_file'])): ?>
                 <p class="success"><?php echo $qrSuccess; ?></p>
-                <img src="<?php echo $qrFile; ?>" alt="QR Code" class="qr-image">
-                <p>Session Code: <?php echo isset($session_code) ? $session_code : 'Not generated'; ?></p>
-                <p>Expires at: <?php echo isset($expiry_time) ? $expiry_time : 'Not generated'; ?></p>
+                <img src="<?php echo $_SESSION['qr_file']; ?>" alt="QR Code" class="qr-image">
+                <p>Session Code: <?php echo isset($_SESSION['qr_session_code']) ? $_SESSION['qr_session_code'] : 'Not generated'; ?></p>
+                <p>Expires at: <?php echo isset($_SESSION['qr_expiry_time']) ? $_SESSION['qr_expiry_time'] : 'Not generated'; ?></p>
             <?php elseif (isset($qrError)): ?>
                 <p class="error"><?php echo $qrError; ?></p>
             <?php else: ?>
-                <p style="font-size: 36px; font-weight: 600; color: #8B4513; text-align: center;">No QR Code Generated Yet</p>
+                <div class="qr-placeholder"></div>
             <?php endif; ?>
             <form action="lecturer_dashboard.php" method="POST">
                 <input type="hidden" name="class_id" value="<?php echo $lastClassId ?? (isset($classes[0]['id']) ? $classes[0]['id'] : ''); ?>">
-                <button type="submit" name="generate_qr">Generate QR Code</button>
+                <button type="submit" name="generate_qr" <?php echo $qrButtonDisabled ? 'disabled' : ''; ?>>Generate QR Code</button>
+                <?php if ($qrButtonDisabled): ?>
+                    <p id="countdown" style="color: #8B4513; font-size: 14px; margin-top: 10px;">New QR code available in: <span id="timer"></span></p>
+                <?php endif; ?>
             </form>
         </div>
 
@@ -530,6 +562,30 @@ try {
         function number_format(number, decimals) {
             return number.toFixed(decimals).replace(/\d(?=(\d{3})+\.)/g, '$&,');
         }
+
+        // Countdown timer for QR code button
+        <?php if ($qrButtonDisabled): ?>
+            let remainingTime = <?php echo $remainingTime; ?>;
+            const timerElement = document.getElementById('timer');
+            const qrButton = document.querySelector('button[name="generate_qr"]');
+
+            function updateTimer() {
+                if (remainingTime <= 0) {
+                    qrButton.disabled = false;
+                    timerElement.parentElement.style.display = 'none';
+                    return;
+                }
+
+                const minutes = Math.floor(remainingTime / 60);
+                const seconds = remainingTime % 60;
+                timerElement.textContent = `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
+                remainingTime--;
+
+                setTimeout(updateTimer, 1000);
+            }
+
+            updateTimer();
+        <?php endif; ?>
     </script>
 </body>
 </html>

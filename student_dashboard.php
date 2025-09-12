@@ -118,7 +118,7 @@ try {
     $attendanceStmt->execute();
     $attendanceRecords = $attendanceStmt->fetchAll(PDO::FETCH_ASSOC);
 
-    $gradesSql = "SELECT * FROM grades WHERE student_id = :student_id";
+    $gradesSql = "SELECT g.*, c.class_name FROM grades g JOIN classes c ON g.class_id = c.id WHERE g.student_id = :student_id";
     $gradesStmt = $conn->prepare($gradesSql);
     $gradesStmt->bindParam(':student_id', $student_id);
     $gradesStmt->execute();
@@ -135,48 +135,307 @@ try {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Student Dashboard</title>
     <style>
-        body { font-family: 'Segoe UI', Tahoma, sans-serif; background: linear-gradient(135deg, #6a11cb, #2575fc); margin: 0; color: #333; }
-        .dashboard-container { background: rgba(255, 255, 255, 0.9); padding: 20px; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); width: 90%; max-width: 1200px; margin: 20px auto; animation: fadeIn 0.5s ease-in-out; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(-20px); } to { opacity: 1; transform: translateY(0); } }
-        .dashboard-header { text-align: center; margin-bottom: 20px; }
-        .dashboard-header h1 { font-size: 28px; color: #444; }
-        .dashboard-section { margin-bottom: 20px; }
-        .dashboard-section h2 { font-size: 22px; color: #6a11cb; margin-bottom: 15px; }
-        table { width: 100%; border-collapse: collapse; margin-bottom: 15px; }
-        table th, table td { padding: 10px; text-align: left; border-bottom: 1px solid #ddd; }
-        table th { background-color: #f4f4f4; color: #444; }
-        table tr:hover { background-color: #f9f9f9; }
-        .attendance-rate { font-weight: bold; color: #2e7d32; }
-        .attendance-rate.low { color: #d32f2f; }
-        .alert { padding: 15px; border-radius: 8px; margin-bottom: 15px; }
-        .alert.warning { background-color: #fff3cd; color: #856404; }
-        .btn { background: #6a11cb; color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-size: 16px; margin: 5px 0; max-width: 300px; }
-        .btn:hover { background: #5a0fb0; }
-        .scanner-container { max-width: 100%; margin: 15px auto; background: white; padding: 15px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
-        #qr-reader { width: 100%; max-width: 400px; margin: 15px auto; border: 2px solid #ddd; border-radius: 5px; }
-        #manual-scan { display: none; margin-top: 15px; }
-        input[type="text"] { width: 100%; max-width: 300px; padding: 10px; margin: 5px 0; border: 1px solid #ddd; border-radius: 5px; box-sizing: border-box; }
-        .permission-message { color: #333; background: #fff3cd; padding: 10px; border-radius: 5px; margin: 10px 0; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', sans-serif;
+            background-color: #FFFFFF;
+            margin: 0;
+            color: #3C2F2F;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
 
-        /* Mobile Responsiveness */
+        .dashboard-container {
+            background-color: #FFFFFF;
+            padding: 32px;
+            border-radius: 16px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 960px;
+            margin: 24px auto;
+            box-sizing: border-box;
+        }
+
+        .dashboard-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+        }
+
+        .dashboard-header h1 {
+            font-size: 28px;
+            font-weight: 600;
+            color: #3C2F2F;
+            margin: 0;
+        }
+
+        .logout-button {
+            padding: 8px 16px;
+            background-color: #34C759;
+            color: #FFFFFF;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+            text-decoration: none;
+            text-align: center;
+        }
+
+        .logout-button:hover {
+            background-color: #2DB84C;
+        }
+
+        .dashboard-section {
+            margin-bottom: 24px;
+        }
+
+        .dashboard-section h2 {
+            font-size: 20px;
+            font-weight: 500;
+            color: #3C2F2F;
+            margin-bottom: 16px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background-color: #FFFFFF;
+        }
+
+        table th,
+        table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #E0E0E0;
+            font-size: 14px;
+            color: #3C2F2F;
+        }
+
+        table th {
+            background-color: #F5F5F5;
+            font-weight: 500;
+        }
+
+        table tr:hover {
+            background-color: #F9F9F9;
+        }
+
+        .attendance-rate {
+            font-weight: 500;
+            color: #34C759;
+        }
+
+        .attendance-rate.low {
+            color: #FF3B30;
+        }
+
+        .alert {
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 16px;
+            background-color: #FFF8E7;
+            color: #3C2F2F;
+            font-size: 14px;
+        }
+
+        .alert.warning {
+            background-color: #FFF8E7;
+            color: #3C2F2F;
+        }
+
+        .btn {
+            padding: 12px;
+            background-color: #34C759;
+            color: #FFFFFF;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+            width: 100%;
+            max-width: 300px;
+            text-align: center;
+        }
+
+        .btn:hover {
+            background-color: #2DB84C;
+        }
+
+        .scanner-container {
+            background-color: #FFFFFF;
+            padding: 16px;
+            border-radius: 12px;
+            margin-bottom: 16px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+            text-align: center;
+        }
+
+        #qr-reader {
+            width: 100%;
+            max-width: 400px;
+            margin: 16px auto;
+            border: 1px solid #E0E0E0;
+            border-radius: 8px;
+        }
+
+        #manual-scan {
+            display: none;
+            margin-top: 16px;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            max-width: 300px;
+            padding: 12px;
+            border: 1px solid #E0E0E0;
+            border-radius: 8px;
+            font-size: 14px;
+            color: #3C2F2F;
+            background-color: #F5F5F5;
+            box-sizing: border-box;
+            margin-bottom: 12px;
+        }
+
+        input[type="text"]:focus {
+            border-color: #34C759;
+            outline: none;
+            background-color: #FFFFFF;
+        }
+
+        .success,
+        .error {
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 16px;
+            font-size: 14px;
+            text-align: center;
+        }
+
+        .success {
+            background-color: #E8F5E9;
+            color: #34C759;
+        }
+
+        .error {
+            background-color: #FFEBEE;
+            color: #FF3B30;
+        }
+
+        .permission-message {
+            background-color: #FFF8E7;
+            color: #3C2F2F;
+            padding: 12px;
+            border-radius: 8px;
+            margin: 12px 0;
+            font-size: 14px;
+        }
+
         @media (max-width: 768px) {
-            .dashboard-container { padding: 15px; margin: 10px auto; width: 95%; }
-            .dashboard-header h1 { font-size: 22px; }
-            .dashboard-section h2 { font-size: 18px; }
-            table { font-size: 14px; }
-            table th, table td { padding: 8px; }
-            .scanner-container { padding: 10px; }
-            #qr-reader { max-width: 100%; }
-            .btn { padding: 8px 16px; font-size: 14px; max-width: 100%; }
-            input[type="text"] { max-width: 100%; }
+            .dashboard-container {
+                padding: 24px;
+                margin: 16px auto;
+                max-width: 90%;
+            }
+
+            .dashboard-header h1 {
+                font-size: 24px;
+            }
+
+            .logout-button {
+                padding: 6px 12px;
+                font-size: 13px;
+            }
+
+            .dashboard-section h2 {
+                font-size: 18px;
+            }
+
+            table th,
+            table td {
+                padding: 10px;
+                font-size: 13px;
+            }
+
+            .scanner-container {
+                padding: 12px;
+            }
+
+            #qr-reader {
+                max-width: 100%;
+            }
+
+            .btn {
+                padding: 10px;
+                font-size: 14px;
+            }
+
+            input[type="text"] {
+                padding: 10px;
+                font-size: 13px;
+            }
+
+            .alert,
+            .success,
+            .error,
+            .permission-message {
+                font-size: 13px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .dashboard-container {
+                padding: 16px;
+                max-width: 95%;
+            }
+
+            .dashboard-header h1 {
+                font-size: 20px;
+            }
+
+            .logout-button {
+                padding: 6px 10px;
+                font-size: 12px;
+            }
+
+            .dashboard-section h2 {
+                font-size: 16px;
+            }
+
+            table th,
+            table td {
+                padding: 8px;
+                font-size: 12px;
+            }
+
+            .btn {
+                padding: 8px;
+                font-size: 13px;
+            }
+
+            input[type="text"] {
+                padding: 8px;
+                font-size: 12px;
+            }
+
+            .alert,
+            .success,
+            .error,
+            .permission-message {
+                font-size: 12px;
+            }
         }
     </style>
 </head>
 <body>
-    <?php include 'nav.php'; ?>
     <div class="dashboard-container">
         <div class="dashboard-header">
             <h1>Welcome, <?php echo htmlspecialchars($studentName); ?>!</h1>
+            <a href="login.php?logout=1" class="logout-button">Logout</a>
         </div>
 
         <!-- QR Scanner Section -->
@@ -253,16 +512,16 @@ try {
             <h2>Grade Reports</h2>
             <?php if (!empty($grades)): ?>
                 <table>
-                    <thead><tr><th>Class</th><th>Test</th><th>Participation</th><th>Total</th></tr></thead>
+                    <thead><tr><th>Class</th><th>Test</th><th>Exam</th><th>Bonus</th><th>Total</th></tr></thead>
                     <tbody>
-                        <?php foreach ($grades as $grade): 
-                            $classNameSql = "SELECT class_name FROM classes WHERE id = :class_id";
-                            $classNameStmt = $conn->prepare($classNameSql);
-                            $classNameStmt->bindParam(':class_id', $grade['class_id']);
-                            $classNameStmt->execute();
-                            $className = $classNameStmt->fetchColumn() ?: "Class " . $grade['class_id'];
-                        ?>
-                            <tr><td><?php echo $className; ?></td><td><?php echo $grade['test_score']; ?></td><td><?php echo $grade['participation_score']; ?></td><td><?php echo $grade['total_grade']; ?></td></tr>
+                        <?php foreach ($grades as $grade): ?>
+                            <tr>
+                                <td><?php echo htmlspecialchars($grade['class_name'] ?: "Class " . $grade['class_id']); ?></td>
+                                <td><?php echo $grade['test_score'] !== null ? $grade['test_score'] : 'N/A'; ?></td>
+                                <td><?php echo $grade['examination_score'] !== null ? $grade['examination_score'] : 'N/A'; ?></td>
+                                <td><?php echo $grade['assignment_bonus_mark'] !== null ? $grade['assignment_bonus_mark'] : 'N/A'; ?></td>
+                                <td><?php echo $grade['total_grade'] !== null ? number_format($grade['total_grade'], 2) : 'N/A'; ?></td>
+                            </tr>
                         <?php endforeach; ?>
                     </tbody>
                 </table>

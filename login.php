@@ -92,38 +92,120 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['login'])) {
     <title>Login</title>
     <style>
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #6a11cb, #2575fc);
+            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', sans-serif;
+            background-color: #FFFFFF;
             display: flex;
             justify-content: center;
             align-items: center;
-            height: 100vh;
+            min-height: 100vh;
             margin: 0;
-            color: #333;
+            color: #3C2F2F;
         }
+
         .form-container {
-            background: rgba(255, 255, 255, 0.9);
-            padding: 30px;
-            border-radius: 15px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
-            width: 350px;
+            background-color: #FFFFFF;
+            padding: 32px;
+            border-radius: 16px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 360px;
             text-align: center;
-            animation: fadeIn 0.5s ease-in-out;
         }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(-20px); } to { opacity: 1; transform: translateY(0); } }
-        .form-container h2 { margin-bottom: 20px; font-size: 24px; color: #444; }
-        .form-container input { width: 100%; padding: 12px; margin-bottom: 15px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; transition: border-color 0.3s ease; }
-        .form-container input:focus { border-color: #6a11cb; outline: none; }
-        .form-container button { width: 100%; padding: 12px; background: linear-gradient(135deg, #6a11cb, #2575fc); color: #fff; border: none; border-radius: 8px; font-size: 16px; cursor: pointer; transition: background 0.3s ease; }
-        .form-container button:hover { background: linear-gradient(135deg, #2575fc, #6a11cb); }
-        .error { color: #ff4d4d; margin-bottom: 15px; font-size: 14px; }
-        .signup-link { margin-top: 15px; font-size: 14px; }
-        .signup-link a { color: #6a11cb; text-decoration: none; font-weight: bold; }
-        .signup-link a:hover { text-decoration: underline; }
+
+        .form-container h2 {
+            font-size: 24px;
+            font-weight: 600;
+            color: #3C2F2F;
+            margin-bottom: 24px;
+        }
+
+        .form-container input {
+            width: 100%;
+            padding: 12px 16px;
+            margin-bottom: 16px;
+            border: 1px solid #E0E0E0;
+            border-radius: 8px;
+            font-size: 16px;
+            color: #3C2F2F;
+            background-color: #F5F5F5;
+            box-sizing: border-box;
+        }
+
+        .form-container input:focus {
+            border-color: #34C759;
+            outline: none;
+            background-color: #FFFFFF;
+        }
+
+        .form-container button {
+            width: 100%;
+            padding: 12px;
+            background-color: #34C759;
+            color: #FFFFFF;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+
+        .form-container button:hover {
+            background-color: #2DB84C;
+        }
+
+        .error {
+            color: #FF3B30;
+            font-size: 14px;
+            margin-bottom: 16px;
+            font-weight: 400;
+        }
+
+        .signup-link {
+            font-size: 14px;
+            color: #3C2F2F;
+            margin-top: 16px;
+        }
+
+        .signup-link a {
+            color: #34C759;
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        .signup-link a:hover {
+            text-decoration: underline;
+        }
+
+        @media (max-width: 480px) {
+            .form-container {
+                padding: 24px;
+                max-width: 300px;
+            }
+
+            .form-container h2 {
+                font-size: 20px;
+                margin-bottom: 20px;
+            }
+
+            .form-container input {
+                font-size: 14px;
+                padding: 10px 14px;
+            }
+
+            .form-container button {
+                font-size: 14px;
+                padding: 10px;
+            }
+
+            .error,
+            .signup-link {
+                font-size: 12px;
+            }
+        }
     </style>
 </head>
 <body>
-    <?php include 'nav.php'; ?>
     <div class="form-container">
         <h2>Login</h2>
         <?php if (isset($error)) echo "<p class='error'>$error</p>"; ?>
