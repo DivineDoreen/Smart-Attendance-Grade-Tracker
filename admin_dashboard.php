@@ -104,7 +104,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['register'])) {
                     }
                 }
 
-                $success = "User registered! Verification link: http://localhost/verify.php?token=$verification_token (Copy and open manually for now.)";
+                // Generate clickable verification link with subdirectory
+                $base_url = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" : "http") . "://$_SERVER[HTTP_HOST]";
+                $base_path = dirname($_SERVER['PHP_SELF']) === '/' ? '' : dirname($_SERVER['PHP_SELF']);
+                $verification_link = "$base_url$base_path/verify.php?token=$verification_token";
+                $success = "User registered! Verification link: <a href='$verification_link'>Click here to verify your account</a>.";
             }
         } catch (PDOException $e) {
             $error = "Database error: " . $e->getMessage();
@@ -218,6 +222,15 @@ try {
             background-color: #E8F5E9;
             color: #34C759;
             text-align: center;
+        }
+
+        .success a {
+            color: #34C759;
+            text-decoration: underline;
+        }
+
+        .success a:hover {
+            color: #2DB84C;
         }
 
         table {

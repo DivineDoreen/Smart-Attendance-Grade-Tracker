@@ -1,13 +1,26 @@
 <?php
 include __DIR__ . '/php/db.php';
 
+error_log("Accessing reset_password.php with GET: " . print_r($_GET, true)); // Debug log
+
 $error = "";
 $success = "";
 
-if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['email'], $_POST['t'], $_POST['h'], $_POST['password'])) {
     $email = filter_var($_POST['email'], FILTER_SANITIZE_EMAIL);
-    if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-        $error = "Invalid email format.";
+    $timestamp = $_POST['t'];
+    $hash = $_POST['h'];
+    $password = $_POST['password'];
+    $secret_key = 'your_secret_key_123'; // Must match the key in forgot_password.php
+
+    error_log("POST data: email=$email, timestamp=$timestamp, hash=$hash"); // Debug log
+
+    // Validate hash and timestamp
+    $expected_hash = hash('sha256', $email . $timestamp . $secret_key);
+    if ($hash !== $expected_hash) {
+        $error = "Invalid reset link.";
+    } elseif (time() - $timestamp > 3600) { // 1-hour expiry
+        $error = "Reset link has expired.";
     } else {
         try {
             $stmt = $conn->prepare("SELECT id FROM users WHERE email = :email");
@@ -15,16 +28,18 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
             if ($user) {
-                $timestamp = time();
-                $secret_key = 'your_secret_key_123'; // Replace with a secure, unique key
-                $hash = hash('sha256', $email . $timestamp . $secret_key);
-                // Dynamic base URL with subdirectory
-                $base_url = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" : "http") . "://$_SERVER[HTTP_HOST]";
-                $base_path = dirname($_SERVER['PHP_SELF']) === '/' ? '' : dirname($_SERVER['PHP_SELF']);
-                $reset_link = "$base_url$base_path/reset_password.php?email=" . urlencode($email) . "&t=$timestamp&h=$hash";
-                $success = "Password reset link: <a href='$reset_link'>Click here to reset your password</a>. This link expires in 1 hour.";
+                if (strlen($password) < 8) {
+                    $error = "Password must be at least 8 characters long.";
+                } else {
+                    $password_hash = password_hash($password, PASSWORD_DEFAULT);
+                    $update_stmt = $conn->prepare("UPDATE users SET password_hash = :password_hash WHERE id = :id");
+                    $update_stmt->execute([':password_hash' => $password_hash, ':id' => $user['id']]);
+                    $success = "Password reset successfully. <a href='login.php'>Log in</a>.";
+                    error_log("Password reset for user ID: {$user['id']}"); // Debug log
+                }
             } else {
                 $error = "Email not found.";
+                error_log("Email not found: $email"); // Debug log
             }
         } catch (PDOException $e) {
             $error = "Database error: " . $e->getMessage();
@@ -39,7 +54,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Forgot Password</title>
+    <title>Reset Password</title>
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', sans-serif;
@@ -99,7 +114,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             color: #2DB84C;
         }
 
-        input[type="email"] {
+        input[type="password"],
+        input[type="hidden"] {
             width: 100%;
             padding: 12px;
             border: 1px solid #E0E0E0;
@@ -111,7 +127,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             margin-bottom: 16px;
         }
 
-        input[type="email"]:focus {
+        input[type="password"]:focus {
             border-color: #34C759;
             outline: none;
             background-color: #FFFFFF;
@@ -144,7 +160,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 font-size: 22px;
             }
 
-            input[type="email"],
+            input[type="password"],
             button {
                 padding: 10px;
                 font-size: 14px;
@@ -166,7 +182,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 font-size: 20px;
             }
 
-            input[type="email"],
+            input[type="password"],
             button {
                 padding: 8px;
                 font-size: 13px;
@@ -181,16 +197,23 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 </head>
 <body>
     <div class="form-container">
-        <h2>Forgot Password</h2>
+        <h2>Reset Password</h2>
         <?php if (!empty($error)): ?>
             <p class="error"><?php echo htmlspecialchars($error); ?></p>
-        <?php elseif (!empty($success)): ?>
-            <p class="success"><?php echo $success; ?></p>
         <?php endif; ?>
-        <form action="forgot_password.php" method="POST">
-            <input type="email" name="email" placeholder="Enter your email" required>
-            <button type="submit">Send Reset Link</button>
-        </form>
+        <?php if (!empty($success)): ?>
+            <p class="success"><?php echo $success; ?></p>
+        <?php elseif (isset($_GET['email'], $_GET['t'], $_GET['h']) || (isset($_POST['email'], $_POST['t'], $_POST['h']) && $error === "Password must be at least 8 characters long.")): ?>
+            <form action="reset_password.php" method="POST">
+                <input type="hidden" name="email" value="<?php echo htmlspecialchars($_POST['email'] ?? $_GET['email'] ?? ''); ?>">
+                <input type="hidden" name="t" value="<?php echo htmlspecialchars($_POST['t'] ?? $_GET['t'] ?? ''); ?>">
+                <input type="hidden" name="h" value="<?php echo htmlspecialchars($_POST['h'] ?? $_GET['h'] ?? ''); ?>">
+                <input type="password" name="password" placeholder="Enter new password (8+ characters)" required>
+                <button type="submit">Reset Password</button>
+            </form>
+        <?php else: ?>
+            <p class="error">Invalid reset link.</p>
+        <?php endif; ?>
     </div>
 </body>
 </html>
